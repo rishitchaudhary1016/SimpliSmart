@@ -1,3 +1,4 @@
+from client_extractor import get_client_signals
 import pandas as pd
 import requests
 import os
@@ -18,22 +19,23 @@ SIGNAL_WEIGHTS = {
     "machine learning": 1,
 
     # Medium Signals (3 points)
-    "mlops": 3,
+    "rag": 3,
     "genai": 3,
     "tensorflow": 3,
     "pytorch": 3,
     "llama": 3,
     "deepseek": 3,
-    "whisper": 3,
-    "flux": 3,
+    
 
     # Strong Signals (10 points)
     "llm": 10,
     "vllm": 10,
     "tensorrt": 10,
-    "rag": 10,
+    "mlops": 10,
     "fine tuning": 10,
     "inference": 10,
+    "whisper": 10,
+    "flux": 10,
     "model serving": 10
 }
 
@@ -45,7 +47,9 @@ STRONG_SIGNALS = {
     "llm",
     "vllm",
     "tensorrt",
-    "rag",
+    "mlops",
+    "whisper",
+    "flux",
     "fine tuning",
     "inference",
     "model serving"
@@ -106,6 +110,7 @@ TOP_COMPANIES = 15
 # =====================================
 
 df = pd.read_csv("output/companies.csv")
+CLIENT_SIGNAL_MAP = get_client_signals()
 
 # =====================================
 # BUYING INTENT EXPLANATION
@@ -115,61 +120,115 @@ def generate_buying_intent_reason(found_signals):
 
     signals = set(found_signals)
 
-    if {"llm", "rag", "inference"} & signals:
+    reasons = []
 
-        return (
-            "Company appears to be building production-grade LLM "
-            "applications involving retrieval and inference workloads, "
-            "which aligns strongly with Simply Smart's AI deployment ICP."
+    # Strong Signals
+
+    if "llm" in signals:
+        reasons.append(
+            "The company references Large Language Models (LLMs), indicating active work on generative AI systems."
         )
 
-    elif {"llm", "vllm", "tensorrt"} & signals:
-
-        return (
-            "Company shows evidence of LLM deployment and inference "
-            "optimization activities, indicating potential demand for "
-            "AI infrastructure and serving solutions."
+    if "vllm" in signals:
+        reasons.append(
+            "The company mentions vLLM, suggesting a focus on high-performance LLM inference infrastructure."
         )
 
-    elif {"genai", "llama", "deepseek"} & signals:
-
-        return (
-            "Company is investing in Generative AI and open-source "
-            "foundation models, making it a relevant prospect for "
-            "model deployment and scaling platforms."
+    if "tensorrt" in signals:
+        reasons.append(
+            "TensorRT usage indicates efforts toward inference optimization and GPU acceleration."
         )
 
-    elif {"mlops", "tensorflow", "pytorch"} & signals:
-
-        return (
-            "Company demonstrates mature machine learning engineering "
-            "practices and model lifecycle management, suggesting a "
-            "need for scalable AI operations infrastructure."
+    if "mlops" in signals:
+        reasons.append(
+            "MLOps adoption suggests mature machine learning deployment and lifecycle management practices."
         )
 
-    elif {"rag", "model serving"} & signals:
-
-        return (
-            "Company appears to be deploying AI systems into production "
-            "environments, closely matching Simply Smart's target "
-            "customer profile."
+    if "inference" in signals:
+        reasons.append(
+            "Inference-related terminology indicates production deployment of AI models."
         )
 
-    elif {"ai", "artificial intelligence", "machine learning"} & signals:
-
-        return (
-            "Company shows active AI and machine learning adoption, "
-            "which could evolve into demand for AI deployment and "
-            "optimization solutions."
+    if "model serving" in signals:
+        reasons.append(
+            "Model serving references suggest operational AI workloads that require scalable infrastructure."
         )
 
-    else:
-
-        return (
-            "Company exhibits indicators of AI technology adoption "
-            "that may create future demand for AI infrastructure "
-            "platforms."
+    if "fine tuning" in signals:
+        reasons.append(
+            "Fine-tuning activity suggests active customization of foundation models."
         )
+
+    if "whisper" in signals:
+        reasons.append(
+            "Use of Whisper indicates speech AI or audio intelligence workloads."
+        )
+
+    if "flux" in signals:
+        reasons.append(
+            "Flux references indicate interest in generative image AI workloads."
+        )
+
+    # Medium Signals
+
+    if "rag" in signals:
+        reasons.append(
+            "RAG implementation suggests knowledge-grounded LLM applications."
+        )
+
+    if "genai" in signals:
+        reasons.append(
+            "Generative AI initiatives indicate ongoing investment in modern AI capabilities."
+        )
+
+    if "llama" in signals:
+        reasons.append(
+            "Use of open-source models like Llama aligns with AI deployment and optimization needs."
+        )
+
+    if "deepseek" in signals:
+        reasons.append(
+            "DeepSeek adoption indicates experimentation with open-weight foundation models."
+        )
+
+    if "tensorflow" in signals:
+        reasons.append(
+            "TensorFlow usage demonstrates active machine learning development."
+        )
+
+    if "pytorch" in signals:
+        reasons.append(
+            "PyTorch usage demonstrates active AI model development and training."
+        )
+
+    if not reasons:
+        return (
+            "The company shows evidence of AI adoption that may require scalable AI infrastructure."
+        )
+
+    return " ".join(reasons[:3])
+
+
+# =====================================
+# MATCH CLIENTS
+# =====================================
+
+def get_matched_clients(company_signals):
+
+    matched_clients = []
+
+    company_signals = set(company_signals)
+
+    for client_name, client_signals in CLIENT_SIGNAL_MAP.items():
+
+        overlap = company_signals.intersection(
+            set(client_signals)
+        )
+
+        if overlap:
+            matched_clients.append(client_name)
+
+    return matched_clients
 
 # =====================================
 # PROCESS ONE COMPANY
@@ -244,6 +303,10 @@ def process_company(row):
     if not found_signals:
         return None
 
+    matched_clients = get_matched_clients(
+        found_signals
+    )
+
     buying_intent_reason = generate_buying_intent_reason(
             found_signals
         )
@@ -257,6 +320,7 @@ def process_company(row):
         "Signal Found": ", ".join(found_signals),
         "Why It Suggests Buying Intent": buying_intent_reason,
         "Score": score,
+        "Matched Client": ", ".join(matched_clients),
         "Source URL": " | ".join(source_urls),
 
         # Internal tie-breaker only
