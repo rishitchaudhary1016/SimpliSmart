@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+
+venv/
+.env
+
+output/icp_signals_output.xlsx
+output/icp_signals_output.csv
+
+.idea/
+.vscode/
