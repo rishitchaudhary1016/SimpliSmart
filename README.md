@@ -23,6 +23,11 @@ The final output is generated as an Excel spreadsheet containing the top-ranked 
 - Automatic ranking of companies
 - Top 15 company selection
 - Excel output generation
+- Client signal extraction
+- Existing client website analysis
+- Medium and strong signal matching
+- Matched client identification
+- Similar-customer discovery
 
 ---
 
@@ -75,6 +80,23 @@ If two companies have the same score, the company with more strong signals is ra
 
 ---
 
+## Client Matching Logic
+
+The project also analyzes existing client websites and extracts AI-related signals.
+
+Client matching is performed using:
+
+- Medium Signals
+- Strong Signals
+
+Weak signals are intentionally ignored during matching to reduce noise.
+
+If a prospect company shares one or more medium or strong signals with an existing client, the client name is added to the output under the "Matched Client" column.
+
+This helps identify prospects that resemble current customers based on technology adoption patterns.
+
+---
+
 ## Discovery Pages
 
 The scraper checks:
@@ -100,6 +122,16 @@ The scraper checks:
 
 ---
 
+## Existing Client Analysis
+
+A helper module (`client_extractor.py`) analyzes existing client websites and extracts relevant AI infrastructure signals.
+
+The extracted signals are stored in memory and are used during the ICP discovery process to identify overlaps between prospects and existing customers.
+
+Only medium and strong signals are considered for client matching.
+
+---
+
 ## Output
 
 The final spreadsheet contains:
@@ -110,13 +142,32 @@ The final spreadsheet contains:
 | Signal Found |
 | Why It Suggests Buying Intent |
 | Score |
+| Matched Client |
 | Source URL |
 
 Example:
 
-| Company Name | Signal Found | Why It Suggests Buying Intent | Score |
+| Company Name | Signal Found | Why It Suggests Buying Intent | Score | Matched Clients | Source URL |
 |-------------|-------------|--------|
-| Example AI | llm, rag, vllm | Company appears to be building production-grade LLM.. | 30 |
+| Example AI | llm, rag, vllm | Company appears to be building production-grade LLM... | 30 | Higgsfield, Sanas, ... | www.... |
+
+---
+
+## Project Components
+
+Main Files:
+
+- SignalScraper.py
+- client_extractor.py
+
+Input Files:
+
+- output/companies.csv
+- output/client_companies.csv
+
+Generated Output:
+
+- output/icp_signals_output.xlsx
 
 ---
 
@@ -135,4 +186,15 @@ output/companies.csv
 
 Output file:
 output/icp_signals_output.xlsx
+
+Client input file:
+output/client_companies.csv
+
+Client matching:
+Medium and Strong signals only
+
+Generated output includes:
+Matched Client column
+
+---
 
