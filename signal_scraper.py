@@ -1,3 +1,5 @@
+
+import re
 from client_extractor import get_client_signals
 import pandas as pd
 import requests
@@ -25,7 +27,6 @@ SIGNAL_WEIGHTS = {
     "pytorch": 3,
     "llama": 3,
     "deepseek": 3,
-    
 
     # Strong Signals (10 points)
     "llm": 10,
@@ -111,6 +112,29 @@ TOP_COMPANIES = 15
 
 df = pd.read_csv("output/companies.csv")
 CLIENT_SIGNAL_MAP = get_client_signals()
+
+# =====================================
+# WHOLE-WORD SIGNAL MATCHING
+# =====================================
+
+def contains_signal(text, signal):
+    """
+    Check whether a signal appears as a complete word or phrase.
+
+    Examples:
+    - 'ai' matches 'AI infrastructure'
+    - 'ai' does not match 'said' or 'training'
+    - 'rag' matches 'RAG pipeline'
+    - 'rag' does not match 'storage', 'average', or 'coverage'
+
+    Multiword signals such as 'fine tuning' and
+    'artificial intelligence' are also supported.
+    """
+
+    pattern = r"\b" + re.escape(signal) + r"\b"
+
+    return re.search(pattern, text, flags=re.IGNORECASE) is not None
+
 
 # =====================================
 # BUYING INTENT EXPLANATION
@@ -230,6 +254,7 @@ def get_matched_clients(company_signals):
 
     return matched_clients
 
+
 # =====================================
 # PROCESS ONE COMPANY
 # =====================================
@@ -289,16 +314,16 @@ def process_company(row):
     score = 0
     strong_signal_count = 0
 
+    # Detect signals using whole-word matching
     for signal, weight in SIGNAL_WEIGHTS.items():
 
-        if signal in collected_text:
+        if contains_signal(collected_text, signal):
 
             found_signals.append(signal)
             score += weight
 
             if signal in STRONG_SIGNALS:
                 strong_signal_count += 1
-
 
     if not found_signals:
         return None
@@ -308,8 +333,8 @@ def process_company(row):
     )
 
     buying_intent_reason = generate_buying_intent_reason(
-            found_signals
-        )
+        found_signals
+    )
 
     print(
         f"  Match found: {company} | Score = {score}"
@@ -326,6 +351,7 @@ def process_company(row):
         # Internal tie-breaker only
         "_strong_signal_count": strong_signal_count
     }
+
 
 # =====================================
 # PARALLEL EXECUTION
@@ -351,6 +377,7 @@ with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
 
         except Exception:
             continue
+
 
 # =====================================
 # CREATE OUTPUT DATAFRAME
@@ -431,6 +458,7 @@ with pd.ExcelWriter(
                 vertical="top"
             )
 
+
 # =====================================
 # DONE
 # =====================================
@@ -462,4 +490,3 @@ output_file = os.path.abspath(
 )
 
 os.startfile(output_file)
-
